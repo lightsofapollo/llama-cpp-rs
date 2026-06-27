@@ -74,6 +74,26 @@ impl LlamaContextParams {
         self
     }
 
+    /// Set the maximum number of distinct KV sequences the context can hold.
+    ///
+    /// The default is 1. Raise it to keep several independent sequences resident
+    /// (e.g. a multi-prefix KV cache that parks prompt prefixes on seqs `1..N`
+    /// and copies them into the working sequence on demand).
+    #[must_use]
+    pub fn with_n_seq_max(mut self, n_seq_max: u32) -> Self {
+        self.context_params.n_seq_max = n_seq_max;
+        self
+    }
+
+    /// Use a single unified KV buffer shared across all sequences (instead of
+    /// statically partitioning `n_ctx` per sequence). Recommended when holding
+    /// several sequences that share large common prefixes.
+    #[must_use]
+    pub fn with_kv_unified(mut self, kv_unified: bool) -> Self {
+        self.context_params.kv_unified = kv_unified;
+        self
+    }
+
     /// Get the `n_batch`
     ///
     /// # Examples
