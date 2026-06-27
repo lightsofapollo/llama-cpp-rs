@@ -1,0 +1,18 @@
+[package]
+name = "mtp_grammar"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+llama-cpp-2 = { path = "../../llama-cpp-2", features = ["common"] }
+anyhow = { workspace = true }
+encoding_rs = { workspace = true }
+serde_json = "1"
+
+[features]
+metal = ["llama-cpp-2/metal"]
+cuda = ["llama-cpp-2/cuda"]
+
+[lints]
+workspace = true

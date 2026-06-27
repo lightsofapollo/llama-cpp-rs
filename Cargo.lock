@@ -1266,6 +1266,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mtp_grammar"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "encoding_rs",
+ "llama-cpp-2",
+ "serde_json",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"

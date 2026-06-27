@@ -70,6 +70,16 @@ impl<'model> LlamaContext<'model> {
         unsafe { llama_cpp_sys_2::llama_n_ctx(self.context.as_ptr()) }
     }
 
+    /// Raw pointer to the underlying `llama_context`.
+    ///
+    /// Needed to wire a dependent draft context's `ctx_other` to this (target)
+    /// context for MTP / EAGLE3 speculative decoding — see
+    /// [`crate::context::params::LlamaContextParams::with_ctx_other`].
+    #[must_use]
+    pub fn as_ptr(&self) -> *mut llama_cpp_sys_2::llama_context {
+        self.context.as_ptr()
+    }
+
     /// Decodes the batch.
     ///
     /// # Errors

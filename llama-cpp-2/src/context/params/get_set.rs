@@ -55,6 +55,25 @@ impl LlamaContextParams {
         self
     }
 
+    /// Set the "other" (target) context that a dependent draft context binds to.
+    ///
+    /// Some speculative draft architectures — Gemma4Assistant (MTP/NextN) and
+    /// EAGLE3 — cannot initialize a standalone context: `llama_new_context_with_model`
+    /// throws "requires ctx_other to be set" unless this points at the target
+    /// model's context. Create the target context first, then pass its pointer
+    /// (see [`crate::context::LlamaContext::as_ptr`]) here when creating the draft
+    /// context.
+    ///
+    /// The pointed-to context must outlive any context created from these params.
+    #[must_use]
+    pub fn with_ctx_other(
+        mut self,
+        ctx_other: *mut llama_cpp_sys_2::llama_context,
+    ) -> Self {
+        self.context_params.ctx_other = ctx_other;
+        self
+    }
+
     /// Get the `n_batch`
     ///
     /// # Examples
