@@ -11,6 +11,7 @@
 #include "llama.cpp/common/common.h"
 #include "llama.cpp/common/fit.h"
 #include "llama.cpp/common/json-schema-to-grammar.h"
+#include "llama.cpp/common/sampling.h"
 #include "llama.cpp/common/speculative.h"
 #include "llama.cpp/include/llama.h"
 #include "wrapper_utils.h"
@@ -334,5 +335,69 @@ extern "C" llama_rs_status llama_rs_mtp_speculative_accept(
         return LLAMA_RS_STATUS_OK;
     } catch (...) {
         return LLAMA_RS_STATUS_EXCEPTION;
+    }
+}
+
+// --- common_sampler (grammar-constrained, optimistic path) -----------------
+
+extern "C" struct common_sampler * llama_rs_common_sampler_init_grammar(
+    const struct llama_model * model,
+    const char * grammar_str,
+    float temp,
+    uint32_t seed) {
+    if (!model || !grammar_str) {
+        return nullptr;
+    }
+    try {
+        common_params_sampling params;
+        // grammar_str is GBNF (already converted from a JSON schema), i.e. a
+        // user-provided grammar.
+        params.grammar = common_grammar(COMMON_GRAMMAR_TYPE_USER, grammar_str);
+        params.temp = temp;
+        params.seed = seed;
+        // Deterministic, grammar-driven decode: disable the truncation/penalty
+        // samplers so the grammar (plus greedy/temperature) fully decides.
+        params.top_k = 0;
+        params.top_p = 1.0f;
+        params.min_p = 0.0f;
+        params.penalty_repeat = 1.0f;
+        return common_sampler_init(model, params);
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+extern "C" void llama_rs_common_sampler_free(struct common_sampler * gsmpl) {
+    if (gsmpl) {
+        common_sampler_free(gsmpl);
+    }
+}
+
+extern "C" llama_token llama_rs_common_sampler_sample(
+    struct common_sampler * gsmpl,
+    struct llama_context * ctx,
+    int32_t idx,
+    bool grammar_first) {
+    if (!gsmpl || !ctx) {
+        return -1;
+    }
+    try {
+        return common_sampler_sample(gsmpl, ctx, idx, grammar_first);
+    } catch (...) {
+        return -1;
+    }
+}
+
+extern "C" void llama_rs_common_sampler_accept(
+    struct common_sampler * gsmpl,
+    llama_token token,
+    bool is_generated) {
+    if (!gsmpl) {
+        return;
+    }
+    try {
+        common_sampler_accept(gsmpl, token, is_generated);
+    } catch (...) {
+        // best-effort; grammar state advance failures are non-fatal here.
     }
 }

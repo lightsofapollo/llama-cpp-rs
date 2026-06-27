@@ -9,6 +9,7 @@ struct llama_model;
 struct llama_sampler;
 struct llama_rs_mtp_speculative;
 struct llama_vocab;
+struct common_sampler;
 
 #include "wrapper_utils.h"
 
@@ -45,6 +46,37 @@ struct llama_sampler * llama_rs_sampler_init_grammar_lazy_patterns(
     size_t num_trigger_tokens);
 
 llama_rs_status llama_rs_sampler_accept(struct llama_sampler * sampler, llama_token token);
+
+// --- common_sampler (grammar-constrained, optimistic path) -----------------
+// Wraps llama.cpp's `common_sampler`, the same grammar-aware sampler the server
+// uses. Unlike a raw grammar+greedy chain (which trips a GGML_ASSERT when a
+// multi-char token crosses a rule boundary), `common_sampler` samples then
+// validates/resamples against the grammar, so grammar-constrained (speculative)
+// decoding is safe.
+
+// Init a grammar-constrained common_sampler. `temp <= 0` selects greedy.
+struct common_sampler * llama_rs_common_sampler_init_grammar(
+    const struct llama_model * model,
+    const char * grammar_str,
+    float temp,
+    uint32_t seed);
+
+void llama_rs_common_sampler_free(struct common_sampler * gsmpl);
+
+// Sample one token at logit position `idx`. `grammar_first` applies the grammar
+// constraint before sampling (constrained sampling).
+llama_token llama_rs_common_sampler_sample(
+    struct common_sampler * gsmpl,
+    struct llama_context * ctx,
+    int32_t idx,
+    bool grammar_first);
+
+// Advance the sampler/grammar state with an emitted token. `is_generated`
+// marks it as model-generated (vs. a forced/prompt token).
+void llama_rs_common_sampler_accept(
+    struct common_sampler * gsmpl,
+    llama_token token,
+    bool is_generated);
 
 // Fit model/context params to device memory (wraps llama.cpp's common_fit_params).
 // Returns common_params_fit_status as an int: 0 = success, 1 = failure, 2 = error.
